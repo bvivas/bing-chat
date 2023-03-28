@@ -35,6 +35,8 @@
     "test:prettier": "prettier '**/*.{js,jsx,ts,tsx}' --check"
   },
   "dependencies": {
+    "bing-chat": "^0.2.3",
+    "js-cookie": "^3.0.1",
     "ws": "^8.13.0"
   },
   "devDependencies": {
