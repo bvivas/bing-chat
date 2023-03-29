@@ -2,6 +2,7 @@ import { BingChat } from './src'
 import dotenv from 'dotenv-safe'
 import { oraPromise } from 'ora'
 import { ChatMessage } from 'bing-chat'
+import { json } from 'stream/consumers'
 
 dotenv.config()
 
@@ -19,64 +20,10 @@ async function main() {
 
 
     const test = await callBing(api, prompt)
-    console.log("TEST: ", test)
+    console.log(toJSON(test))
 
     return 0
 
-  
-    // Prompt 1
-    restartHandler(prompt)
-
-    let res = await oraPromise(api.sendMessage(prompt), {
-      text: prompt
-    })
-     
-
-    printJSON(res)
-  
-    //consocallBingle.log('\n' + res.text + '\n')
-
-
-    return
-  
-    // Prompt 2
-    const prompt2 = '¿Me puedes dar un ejemplo en Java para saber si un número es primo o no?'
-
-    res = await oraPromise(api.sendMessage(prompt2, res), {
-      text: prompt2
-    })
-    console.log('\n' + res.text + '\n')
-    printChatMessage(res)
-
-    // Si la respuesta contiene un bloque de codigo
-    if(res.text.includes('```')) {
-      let codeSnippet = parseCode(res.text);
-
-      summaryPrompt = summaryPrompt + '\n' + codeSnippet
-  
-      res = await oraPromise(api.sendMessage(summaryPrompt, res), {
-        text: summaryPrompt
-      })
-
-      console.log(res.text)
-      printChatMessage(res)
-    }
-  
-    const prompt3 = '¿Qué tiempo va a hacer en Semana Santa de 2023 en Alicante?'
-  
-    res = await oraPromise(api.sendMessage(prompt3, res), {
-      text: prompt3
-    })
-    console.log('\n' + res.text + '\n')
-    printChatMessage(res)
-  
-    const prompt4 = '¿De qué estábamos hablando al principio de la conversación?'
-  
-    res = await oraPromise(api.sendMessage(prompt4, res), {
-      text: prompt4
-    })
-    console.log('\n' + res.text + '\n')
-    printChatMessage(res)
 }
 
 function restartHandler(prompt) {
@@ -140,7 +87,22 @@ function printJSON(res: ChatMessage) {
   }
 
   // Printing JSON object
-  console.log(objTmp)
+  return objTmp
+}
+
+function toJSON(res: ChatMessage) {
+
+  const jsonString =
+  '{\n\t"id":"' + res.id + '",\n' +
+  '\t"text":"'+ res.text + '",\n' +
+  '\t"author":"' + res.author + '",\n' +
+  '\t"conversationId":"' + res.conversationId + '",\n' +
+  '\t"clientId":"' + res.clientId + '",\n' +
+  '\t"conversationSignature":"' + res.conversationSignature + '",\n' +
+  '\t"conversationExpiryTime":"' + res.conversationExpiryTime + '",\n' +
+  '\t"invocationId":"' + res.invocationId + '"\n}'
+
+  return jsonString
 }
 
 main().catch((err) => {

@@ -1,3 +1,10 @@
-
-Un número primo es un número natural mayor que 1 que tiene únicamente dos divisores distintos: él mismo y el 1. ¿Te gustaría saber más sobre los números primos?
-
+{
+	"id":"0522e66a-e878-4f9f-b43b-a05e9c16b970",
+	"text":"Un número primo es un número natural mayor que 1 que tiene únicamente dos divisores distintos: él mismo y el 1. ¿Te gustaría saber más sobre los números primos?",
+	"author":"bot",
+	"conversationId":"51D|BingProd|9B752C5A9D3541001D74E968574495F7F4C98A800B2D120F8DDFD96B1202A91D",
+	"clientId":"985154256105255",
+	"conversationSignature":"+FrHziA//uMJs3rKFE01p+cQcvvjd3DugC6k7ljhuBY=",
+	"conversationExpiryTime":"2023-03-29T13:47:26.3307697Z",
+	"invocationId":"2"
+}
