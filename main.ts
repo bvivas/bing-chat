@@ -5,25 +5,42 @@ import { ChatMessage } from 'bing-chat'
 
 dotenv.config()
 
+
+// Context to follow-up conversations
 let context = undefined;
 
 
 async function main() {
+
+  let prompt = undefined
+
+  // Check program input
+  if(process.argv.length < 3 || process.argv.length > 4) {
+    // Wrong number of params
+    process.exit(1)
+  } else {
+      // Get prompt
+      prompt = process.argv[2]
+  }
+  if(process.argv.length == 4) {
+    // If there is context we get it
+    context = process.argv[3]
+  }
     
-    // Get the API with a valid cookie
-    const api = new BingChat({ cookie: process.env.BING_COOKIE })
+  // Get the API with a valid cookie
+  const api = new BingChat({ cookie: process.env.BING_COOKIE })
 
-    const prompt = '¿Qué es una mitocondria?'
+  // Check if the prompt is a reset conversation command
+  restartHandler(prompt)
 
-    // Check if the prompt is a reset conversation command
-    restartHandler(prompt)
+  // Get response from Bing Chat
+  const res = await callBing(api, prompt)
+  // Check if there is a code block and replace it
+  // with its proper explanation
+  const parsedRes = await checkCode(api, res)
+  console.log(toJSON(parsedRes))
 
-
-    const res = await callBing(api, prompt)
-    const parsedRes = await checkCode(api, res)
-    console.log(toJSON(parsedRes))
-
-    return 0
+  process.exit(0)
 
 }
 
@@ -47,22 +64,25 @@ function restartHandler(prompt) {
 async function callBing (api, prompt, context=undefined) {
 
   let res: ChatMessage = undefined
+
+  // Regular expression for detecting references
   let regex = /\[\^(.*?)\^\]+/g
 
-  // Calling Bing Chat with or without context
   if (context) {
+    // Call API with context
     res = await oraPromise(api.sendMessage(prompt, context), {
       text: prompt
     })
   } else {
+    // Call API without context
     res = await oraPromise(api.sendMessage(prompt), {
       text: prompt
     })
   }
 
+  // Delete references
   res.text = res.text.replace(regex, "")
 
-  // Returning response
   return res
 }
 
@@ -98,6 +118,7 @@ async function checkCode(api, res) {
 
 function toJSON(res: ChatMessage) {
 
+  // Build the JSON string
   const jsonString =
   '{\n\t"id":"' + res.id + '",\n' +
   '\t"text":"'+ res.text + '",\n' +
