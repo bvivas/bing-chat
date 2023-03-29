@@ -2,36 +2,39 @@ import { BingChat } from './src'
 import dotenv from 'dotenv-safe'
 import { oraPromise } from 'ora'
 import { ChatMessage } from 'bing-chat'
-import { json } from 'stream/consumers'
 
 dotenv.config()
 
 let context = undefined;
 
+
 async function main() {
-    // Defining API
+    
+    // Get the API with a valid cookie
     const api = new BingChat({ cookie: process.env.BING_COOKIE })
 
+    const prompt = '¿Qué es una mitocondria?'
 
-    const prompt = 'Explícame lo que es un número primo en dos frases.'
-
-    // Checking prompt for reset command
+    // Check if the prompt is a reset conversation command
     restartHandler(prompt)
 
 
-    const test = await callBing(api, prompt)
-    console.log(toJSON(test))
+    const res = await callBing(api, prompt)
+    const parsedRes = await checkCode(api, res)
+    console.log(toJSON(parsedRes))
 
     return 0
 
 }
+
 
 function restartHandler(prompt) {
   // Defining list of reset key prompts
   let keyPrompts = [
     'reinicia la conversación',
     'vamos a hablar de otra cosa',
-    'reinicia'
+    'reinicia',
+    'abre otra conversación'
   ]
 
   // Resetting context if command requests reset
@@ -40,55 +43,58 @@ function restartHandler(prompt) {
   }
 }
 
+
 async function callBing (api, prompt, context=undefined) {
-  let res = undefined
+
+  let res: ChatMessage = undefined
+  let regex = /\[\^(.*?)\^\]+/g
 
   // Calling Bing Chat with or without context
   if (context) {
-    res = await oraPromise(api.sendMessage(prompt), {
-      text: prompt
-    })
-  } else {
     res = await oraPromise(api.sendMessage(prompt, context), {
       text: prompt
     })
+  } else {
+    res = await oraPromise(api.sendMessage(prompt), {
+      text: prompt
+    })
   }
+
+  res.text = res.text.replace(regex, "")
 
   // Returning response
   return res
 }
 
-async function checkCode (api, res) {
+
+async function checkCode(api, res) {
+
   let newRes = res
 
-  // Detecting code block
+  // If the response contains a code block we give
+  // an explanation instead of the code
   if(res.text.includes('```')) {
+    // Get the code block
     const codeSnippet = res.text.substring(res.text.indexOf('```') + 3, res.text.lastIndexOf('```'))
 
-    // Generating new query to explain code verbally
-    let summaryPrompt = '¿Puedes explicar con palabras lo que hace este código sin mostrar más código? Sólo responde la explicación del código.'
+    // Get the explanation
+    let summaryPrompt = '¿Puedes explicar con palabras lo que hace este código sin mostrar más código? Responde únicamente la explicación del código, no me saludes.'
     summaryPrompt += '\n' + codeSnippet
 
-    // Calling Bing Chat
     newRes = await callBing(api, summaryPrompt)
 
-    // Substituting original code block in response with new explanation
-    // TODO
+    // Merge both answers
+    let finalRes = res.text.substring(0, res.text.indexOf('```'))
+    finalRes = finalRes + newRes.text
+    newRes.text = finalRes
+
+    return newRes
   }
 
-  // Returning appropiate response
+  // If there is no code, return the same res
   return newRes
 }
 
-function printJSON(res: ChatMessage) {
-  // Obtaining all JSON fields
-  const objTmp = {
-    ...res
-  }
-
-  // Printing JSON object
-  return objTmp
-}
 
 function toJSON(res: ChatMessage) {
 
@@ -104,6 +110,7 @@ function toJSON(res: ChatMessage) {
 
   return jsonString
 }
+
 
 main().catch((err) => {
     console.error(err)
