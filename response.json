@@ -1,10 +1,10 @@
 {
-	"id":"0522e66a-e878-4f9f-b43b-a05e9c16b970",
-	"text":"Un número primo es un número natural mayor que 1 que tiene únicamente dos divisores distintos: él mismo y el 1. ¿Te gustaría saber más sobre los números primos?",
+	"id":"1c8ef63e-77d2-45d3-be67-ff2db038bcec",
+	"text":"Mañana se verán principalmente cielos despejados en Madrid, aunque se esperan cielos cubiertos por la mañana. Las temperaturas oscilarán entre 6°C y 21°C durante el dia, cuya máxima se alcanzará sobre las 17:00. A lo largo del día, prevalecerá el viento moderado de suroeste, con rachas que podrán llegar hasta 47 km/h por la tarde.  ¡Que tengas un buen día!😊",
 	"author":"bot",
-	"conversationId":"51D|BingProd|9B752C5A9D3541001D74E968574495F7F4C98A800B2D120F8DDFD96B1202A91D",
+	"conversationId":"51D|BingProd|B90E5A9E79D50AAC21F8D480D062EC285EB245CCF02A7DF455D7E32657E68125",
 	"clientId":"985154256105255",
-	"conversationSignature":"+FrHziA//uMJs3rKFE01p+cQcvvjd3DugC6k7ljhuBY=",
-	"conversationExpiryTime":"2023-03-29T13:47:26.3307697Z",
+	"conversationSignature":"BJT8RNihRkbln2IkEzD8xTyV3N5v4RWYTvueyV74obA=",
+	"conversationExpiryTime":"2023-03-29T20:48:19.9732888Z",
 	"invocationId":"2"
 }

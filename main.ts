@@ -37,8 +37,13 @@ async function main() {
   const res = await callBing(api, prompt)
   // Check if there is a code block and replace it
   // with its proper explanation
-  const parsedRes = await checkCode(api, res)
-  console.log(toJSON(parsedRes))
+  let parsedRes = await checkCode(api, res)
+
+  // Delete special characters which might break JSON
+  // and make a non-fluid answer
+  let finalRes = parseRes(parsedRes)
+
+  console.log(toJSON(finalRes))
 
   process.exit(0)
 
@@ -86,6 +91,23 @@ async function callBing (api, prompt, context=undefined) {
   return res
 }
 
+function parseRes(res) {
+
+  // Regex for the end of lines
+  const regexNewLine = /[\n]/g
+  const regexBacktick = /`/g
+  const regexDoubleQuotes = /"/g
+  const regexAsterisk = /\*/g
+
+  // Delete end of lines to match JSON format
+  res.text = res.text.replace(regexNewLine, " ")
+  res.text = res.text.replace(regexBacktick, "")
+  res.text = res.text.replace(regexDoubleQuotes, "")
+  res.text = res.text.replace(regexAsterisk, "")
+
+  return res
+}
+
 
 async function checkCode(api, res) {
 
@@ -94,6 +116,7 @@ async function checkCode(api, res) {
   // If the response contains a code block we give
   // an explanation instead of the code
   if(res.text.includes('```')) {
+
     // Get the code block
     const codeSnippet = res.text.substring(res.text.indexOf('```') + 3, res.text.lastIndexOf('```'))
 
