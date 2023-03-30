@@ -37,7 +37,8 @@
   "dependencies": {
     "bing-chat": "^0.2.3",
     "js-cookie": "^3.0.1",
-    "ws": "^8.13.0"
+    "ws": "^8.13.0",
+    "xhr2": "^0.2.1"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.1.1",

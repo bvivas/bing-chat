@@ -2,6 +2,8 @@ import { BingChat } from './src'
 import dotenv from 'dotenv-safe'
 import { oraPromise } from 'ora'
 import { ChatMessage } from 'bing-chat'
+import * as types from 'src/types'
+import { createRequire } from 'module'
 
 dotenv.config()
 
@@ -13,6 +15,7 @@ let context = undefined;
 async function main() {
 
   let prompt = undefined
+  let contextFile = undefined
 
   // Check program input
   if(process.argv.length < 3 || process.argv.length > 4) {
@@ -24,7 +27,11 @@ async function main() {
   }
   if(process.argv.length == 4) {
     // If there is context we get it
-    context = process.argv[3]
+    contextFile = process.argv[3]
+    const require = createRequire(import.meta.url)
+    const fs = require('fs')
+    context = JSON.parse(fs.readFileSync(contextFile))
+    console.log(context)
   }
     
   // Get the API with a valid cookie
@@ -34,7 +41,7 @@ async function main() {
   restartHandler(prompt)
 
   // Get response from Bing Chat
-  const res = await callBing(api, prompt)
+  const res = await callBing(api, prompt, context)
   // Check if there is a code block and replace it
   // with its proper explanation
   let parsedRes = await checkCode(api, res)
@@ -75,7 +82,9 @@ async function callBing (api, prompt, context=undefined) {
 
   if (context) {
     // Call API with context
-    res = await oraPromise(api.sendMessage(prompt, context), {
+    let resContext: ChatMessage = JSONtoRes(context)
+
+    res = await oraPromise(api.sendMessage(prompt), {
       text: prompt
     })
   } else {
@@ -91,6 +100,13 @@ async function callBing (api, prompt, context=undefined) {
   return res
 }
 
+
+/**
+ * Deletes special characters and expression from responses to get a correct JSON
+ * format and make fluid conversations
+ * @param res 
+ * @returns new formatted response
+ */
 function parseRes(res) {
 
   // Regex for the end of lines
@@ -109,6 +125,14 @@ function parseRes(res) {
 }
 
 
+/**
+ * Check whether the passed in response contains a block code. If it does,
+ * it takes out the code snipped and asks Bing Chat for an explanation, then
+ * it appends such explanation to the previous answer without the code snippet
+ * @param api 
+ * @param res 
+ * @returns new explained response without the code
+ */
 async function checkCode(api, res) {
 
   let newRes = res
@@ -139,6 +163,11 @@ async function checkCode(api, res) {
 }
 
 
+/**
+ * Parses a ChatMessage fields to write them into JSON format
+ * @param res 
+ * @returns string with a correct JSON format
+ */
 function toJSON(res: ChatMessage) {
 
   // Build the JSON string
@@ -153,6 +182,34 @@ function toJSON(res: ChatMessage) {
   '\t"invocationId":"' + res.invocationId + '"\n}'
 
   return jsonString
+}
+
+
+/**
+ * Extracts a JSON file fields and assigns them to a ChatMessage object to retrieve
+ * a past conversation's context
+ * @param context 
+ * @returns new ChatMessage object with the previous context
+ */
+function JSONtoRes(context) {
+
+  const res: types.ChatMessage = {
+    id: context.id,
+    text: context.text,
+    author: context.author,
+    conversationId: context.conversationId,
+    clientId: context.clientId,
+    conversationSignature: context.conversationSignature,
+    conversationExpiryTime: context.conversationExpiryTime,
+    invocationId: context.invocationId
+  }
+
+  let resTmp = {
+    ...res
+  }
+  console.log(resTmp)
+
+  return res
 }
 
 
