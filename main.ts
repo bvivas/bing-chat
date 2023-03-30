@@ -8,14 +8,21 @@ import { createRequire } from 'module'
 dotenv.config()
 
 
-// Context to follow-up conversations
-let context = undefined;
-
-
 async function main() {
 
   let prompt = undefined
   let contextFile = undefined
+
+  const require = createRequire(import.meta.url)
+  const fs = require('fs')
+
+  // Context to follow-up conversations
+  let context = undefined;
+
+  // JSON to restart conversation
+  const restartJSON = {
+    "msg": "restart conversation"
+  }
 
   // Check program input
   if(process.argv.length < 3 || process.argv.length > 4) {
@@ -26,23 +33,35 @@ async function main() {
       prompt = process.argv[2]
   }
   if(process.argv.length == 4) {
-    // If there is context we get it
+    // If there is context
     contextFile = process.argv[3]
-    const require = createRequire(import.meta.url)
-    const fs = require('fs')
+    // Store the contents in the context variable
     context = JSON.parse(fs.readFileSync(contextFile))
-    console.log(context)
   }
     
   // Get the API with a valid cookie
   const api = new BingChat({ cookie: process.env.BING_COOKIE })
 
   // Check if the prompt is a reset conversation command
-  restartHandler(prompt)
+  const restartMsg = restartHandler(prompt)
+  if(restartMsg == "restart") {
+    // Unset the context
+    context = undefined
+    // Delete the context file
+    try {
+      fs.unlinkSync('prueba.txt')
+    } catch(error) {
+      console.log(error)
+    }
+    // Send message to restart the conversation
+    console.log(restartJSON)
+    process.exit(0)
+  }
 
   // Get response from Bing Chat
   const res = await callBing(api, prompt, context)
-  // Check if there is a code block and replace it
+
+  // Check if there is a code block and replaces it
   // with its proper explanation
   let parsedRes = await checkCode(api, res)
 
@@ -58,7 +77,8 @@ async function main() {
 
 
 function restartHandler(prompt) {
-  // Defining list of reset key prompts
+
+  // List of keywords
   let keyPrompts = [
     'reinicia la conversación',
     'vamos a hablar de otra cosa',
@@ -66,9 +86,12 @@ function restartHandler(prompt) {
     'abre otra conversación'
   ]
 
-  // Resetting context if command requests reset
-  if(keyPrompts.includes(prompt)) {
-    context = undefined // TODO REVISAR COMO RESETEAR (HAY QUE VACIAR ARCHIVO)
+  // If the prompt includes any of the restart keywords
+  // unset the context
+  if(prompt.includes(keyPrompts)) {
+    return "restart"
+  } else {
+    return "no restart"
   }
 }
 
@@ -84,7 +107,7 @@ async function callBing (api, prompt, context=undefined) {
     // Call API with context
     let resContext: ChatMessage = JSONtoRes(context)
 
-    res = await oraPromise(api.sendMessage(prompt), {
+    res = await oraPromise(api.sendMessage(prompt, resContext), {
       text: prompt
     })
   } else {
@@ -193,6 +216,7 @@ function toJSON(res: ChatMessage) {
  */
 function JSONtoRes(context) {
 
+  // Build the res object
   const res: types.ChatMessage = {
     id: context.id,
     text: context.text,
@@ -203,11 +227,6 @@ function JSONtoRes(context) {
     conversationExpiryTime: context.conversationExpiryTime,
     invocationId: context.invocationId
   }
-
-  let resTmp = {
-    ...res
-  }
-  console.log(resTmp)
 
   return res
 }

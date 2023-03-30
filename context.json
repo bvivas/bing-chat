@@ -1,0 +1,10 @@
+{
+	"id":"7d86117a-6e3d-4033-8ee4-3cc1f99a6f9f",
+	"text":"Para saber si un número es impar en Python, se puede utilizar el operador módulo %. Si el número se divide entre 2 y el resto es diferente de 0, entonces es impar. Por ejemplo: Claro que sí. Este código define una variable llamada numero y le asigna el valor de 3. Luego, verifica si el número es impar o no. Si el número es impar, imprime El número es impar. Si el número es par, no hace nada. ¿Te gustaría saber algo más?",
+	"author":"bot",
+	"conversationId":"51D|BingProd|742C0DA91B4A7EF7CDE89A83207420BA26B17BD318C790B17A12C8F5AFA09356",
+	"clientId":"985154256105255",
+	"conversationSignature":"EnJOZVoAsqu/7ZAYVvyLvLzUZIpzfvRig4k889rkZTI=",
+	"conversationExpiryTime":"2023-03-30T15:11:27.2316529Z",
+	"invocationId":"2"
+}
