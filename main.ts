@@ -12,31 +12,26 @@ async function main() {
 
   let prompt = undefined
   let contextFile = undefined
+  // Context to follow-up conversations
+  let context = undefined
+  // JSON to restart conversation
+  const restartJSON = {
+    "msg": "new conversation"
+  }
 
   const require = createRequire(import.meta.url)
   const fs = require('fs')
 
-  // Context to follow-up conversations
-  let context = undefined;
-
-  // JSON to restart conversation
-  const restartJSON = {
-    "msg": "restart conversation"
-  }
-
   // Check program input
-  if(process.argv.length < 3 || process.argv.length > 4) {
+  if(process.argv.length != 4) {
     // Wrong number of params
     process.exit(1)
   } else {
       // Get prompt
       prompt = process.argv[2]
-  }
-  if(process.argv.length == 4) {
-    // If there is context
-    contextFile = process.argv[3]
-    // Store the contents in the context variable
-    context = JSON.parse(fs.readFileSync(contextFile))
+      contextFile = process.argv[3]
+      // Store the contents in the context variable
+      context = JSON.parse(fs.readFileSync(contextFile))
   }
     
   // Get the API with a valid cookie
@@ -44,18 +39,18 @@ async function main() {
 
   // Check if the prompt is a reset conversation command
   const restartMsg = restartHandler(prompt)
-  if(restartMsg == "restart") {
+  if(restartMsg) {
     // Unset the context
     context = undefined
-    // Delete the context file
-    try {
-      fs.unlinkSync('prueba.txt')
-    } catch(error) {
-      console.log(error)
-    }
     // Send message to restart the conversation
     console.log(restartJSON)
+    fs.writeFileSync(contextFile, writeRestartJSON())
     process.exit(0)
+  }
+
+  // If the JSON indicates to start a new conversation, the context is deleted
+  if(JSON.stringify(context) === JSON.stringify(restartJSON)) {
+    context = undefined
   }
 
   // Get response from Bing Chat
@@ -63,49 +58,67 @@ async function main() {
 
   // Check if there is a code block and replaces it
   // with its proper explanation
-  let parsedRes = await checkCode(api, res)
+  const noCodeRes = await checkCode(api, res)
 
   // Delete special characters which might break JSON
   // and make a non-fluid answer
-  let finalRes = parseRes(parsedRes)
+  const finalRes = parseRes(noCodeRes)
 
-  console.log(toJSON(finalRes))
+  // Writes the final JSON with the answer
+  console.log(resToJSON(finalRes))
+  fs.writeFileSync(contextFile, resToJSON(finalRes))
 
   process.exit(0)
-
 }
 
 
+/**
+ * Checks if the prompt contains one of the keyphrases to start a new
+ * conversation
+ * @param prompt 
+ * @returns true if a keyphrase is included, false otherwise
+ */
 function restartHandler(prompt) {
 
   // List of keywords
-  let keyPrompts = [
-    'reinicia la conversación',
-    'vamos a hablar de otra cosa',
-    'reinicia',
-    'abre otra conversación'
+  const keyPrompts = [
+    "reinicia la conversación",
+    "vamos a hablar de otra cosa",
+    "abre otra conversación",
+    "nueva conversación"
   ]
 
-  // If the prompt includes any of the restart keywords
-  // unset the context
-  if(prompt.includes(keyPrompts)) {
-    return "restart"
-  } else {
-    return "no restart"
+  let included = false
+
+  // Check if the prompt includes any of the restart keywords
+  for (let i = 0; i < keyPrompts.length; i++) {
+    if (prompt.toLowerCase().includes(keyPrompts[i])) {
+      included = true
+      break
+    }
   }
+
+  return included
 }
 
 
+/**
+ * Calls Bing Chat and obtains an answer.
+ * If it has previous context, it will be converted to a correct ChatMessage
+ * object and serve as a previous response to the API. Otherwise, it will be
+ * treated as a new answer
+ * @param api 
+ * @param prompt 
+ * @param context 
+ * @returns 
+ */
 async function callBing (api, prompt, context=undefined) {
 
   let res: ChatMessage = undefined
 
-  // Regular expression for detecting references
-  let regex = /\[\^(.*?)\^\]+/g
-
-  if (context) {
+  if(context) {
     // Call API with context
-    let resContext: ChatMessage = JSONtoRes(context)
+    let resContext: ChatMessage = JSONToRes(context)
 
     res = await oraPromise(api.sendMessage(prompt, resContext), {
       text: prompt
@@ -116,9 +129,6 @@ async function callBing (api, prompt, context=undefined) {
       text: prompt
     })
   }
-
-  // Delete references
-  res.text = res.text.replace(regex, "")
 
   return res
 }
@@ -134,15 +144,21 @@ function parseRes(res) {
 
   // Regex for the end of lines
   const regexNewLine = /[\n]/g
+  // Regex for backticks
   const regexBacktick = /`/g
+  // Regex for double quotes
   const regexDoubleQuotes = /"/g
+  // Regex for asterisks
   const regexAsterisk = /\*/g
+  // Regex for references
+  const regexReferences = /\[\^(.*?)\^\]+/g
 
   // Delete end of lines to match JSON format
   res.text = res.text.replace(regexNewLine, " ")
   res.text = res.text.replace(regexBacktick, "")
   res.text = res.text.replace(regexDoubleQuotes, "")
   res.text = res.text.replace(regexAsterisk, "")
+  res.text = res.text.replace(regexReferences, "")
 
   return res
 }
@@ -191,7 +207,7 @@ async function checkCode(api, res) {
  * @param res 
  * @returns string with a correct JSON format
  */
-function toJSON(res: ChatMessage) {
+function resToJSON(res: ChatMessage) {
 
   // Build the JSON string
   const jsonString =
@@ -214,7 +230,7 @@ function toJSON(res: ChatMessage) {
  * @param context 
  * @returns new ChatMessage object with the previous context
  */
-function JSONtoRes(context) {
+function JSONToRes(context) {
 
   // Build the res object
   const res: types.ChatMessage = {
@@ -229,6 +245,19 @@ function JSONtoRes(context) {
   }
 
   return res
+}
+
+/**
+ * Builds the new conversation string in a correct JSON format
+ * @returns new conversation JSON string
+ */
+function writeRestartJSON() {
+
+  // Build the JSON string
+  const jsonRestartString =
+    '{\n\t"msg": "new conversation"\n}'
+
+  return jsonRestartString
 }
 
 
